@@ -200,6 +200,8 @@ local Local =       lpeg.P"local" * Space;
 local Class =       lpeg.P"class" * Space;
 local New =         lpeg.P"new" * Space;
 local Extends =     lpeg.P"extends" * Space;
+local Try =         lpeg.P"try" * Space;
+local Catch =       lpeg.P"catch" * Space;
 
 local Not =         lpeg.P"!" * Space;
 local Anything =    lpeg.R(string.char(0)..string.char(255))^1;
@@ -220,7 +222,7 @@ local Gr;
 Gr = {
     "Genesis",
 
-    SingleLine =    V"Else" + V"If" + V"OpAugSet" + V"OpSet" + V"Function" + V"LocalFunction" + V"ForBlock" + V"Call" + V"CrementLine" + V"HeadlessScope" + V"ForBlock2" + V"ForBlock3" + V"ForBlock4" + V"ExpressionCall" + V"Declare" + V"Return" + V"Break" + V"Continue" + V"While" + V"Class" + V"New";
+    SingleLine =    V"Else" + V"If" + V"OpAugSet" + V"OpSet" + V"Function" + V"LocalFunction" + V"ForBlock" + V"Call" + V"CrementLine" + V"HeadlessScope" + V"ForBlock2" + V"ForBlock3" + V"ForBlock4" + V"ExpressionCall" + V"Declare" + V"Return" + V"Break" + V"Continue" + V"While" + V"Class" + V"New" + V"TryCatch";
     --prototype legacy line detection
     --Genesis =       Space * lpeg.Cf(V"SingleLine" * (Semicolon^0 * V"Genesis"^0), testfn );
     Genesis = Space * lpeg.Ct(((Semicolon^0) * V"SingleLine")^1 * (Semicolon^0)) / function(a) return table.concat(a, "\n") end;
@@ -229,7 +231,7 @@ Gr = {
                     + PARSER_DEBUG(CurlyOpen * V"Genesis", "CurlyClose")
                     + PARSER_DEBUG(CurlyOpen * Space, "CurlyClose");
 
-    Keyword =       ((For - (P"for" * Name)) + (In - (P"in" * Name)) + (If - (P"if" * Name)) + (While - (P"while" * Name)) + (Return - (P"return" * Name)) + (Break - (P"break" * Name)) + (Continue - (P"continue" * Name)) + (New - (P"new" * Name)) + (Class - (P"class" * Name)) + (Else - (P"else" * Name)) + (Extends - (P"extends" * Name)));
+    Keyword =       ((For - (P"for" * Name)) + (In - (P"in" * Name)) + (If - (P"if" * Name)) + (While - (P"while" * Name)) + (Return - (P"return" * Name)) + (Break - (P"break" * Name)) + (Continue - (P"continue" * Name)) + (New - (P"new" * Name)) + (Class - (P"class" * Name)) + (Else - (P"else" * Name)) + (Extends - (P"extends" * Name)) + (Try - (P"try" * Name)) + (Catch - (P"catch" * Name)));
     Type =          (Type - V"Keyword") + Local;
     Name =          Name - V"Keyword";
 
@@ -477,7 +479,9 @@ Gr = {
     --                 end)
     --prototype legacy class blocks
     ClassBlock =    lpeg.Ct((V"ClassFunction")^1) / function(a) return table.concat(a, ";\n") end;
-
+    TryCatch = (Try * V"Block" * Catch * ParenOpen * V"Variable" * ParenClose * V"Block") / function(try, e, catch)
+        return "local succ, " .. e .. " = pcall(function ()\n" .. try .. "end) if not succ then " .. catch .. " end\n";
+    end;
 }
 
 --for k,v in pairs (Gr) do

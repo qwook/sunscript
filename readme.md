@@ -34,6 +34,24 @@ then require .sun files as you would with .lua files.
 			super.start();
 		}
 	}
+###multiple inheritance###
+    class Person {
+        eat() { print("oishii"); }
+    }
+
+    class Chef {
+        cook() { print("pastrami"); }
+    }
+
+    // did you know that a programmer is both a person and a chef?
+    class Programmer extends Chef, Person {
+        program() { print("i know python"); }
+    }
+
+    local programmer = new Programmer();
+    programmer.cook();
+    programmer.eat();
+    programmer.program();
 
 ###C++ inspired syntax###
 
@@ -41,6 +59,15 @@ then require .sun files as you would with .lua files.
         local car = new Car(i);
         local motorcycle = new Motorcycle(i);
         continue; // continue keyword compatible with lua 5.1 and 5.2
+    }
+
+###do pcalls with try-catch###
+
+    try {
+        unknownfunction();
+    }
+    catch (e) {
+        print("we got this: " .. e);
     }
 
 ###new and old operators###
