@@ -406,6 +406,12 @@ Gr = {
 
     New =           lpeg.Cg((New - (P"new" * V"Name")) * V"Variable" * V"CallParen" / function(a, b) return "(" .. a .. "):new" .. b end) +
                     lpeg.Cg((New - (P"new" * V"Name")) * V"Variable" / function(a) return "(" .. a .. "):new()" end);
+    ClassList =     lpeg.Cf(
+                        V"Variable" / function(a) return {a}; end
+                        * (Comma * V"Variable")^0, function(a, b)
+                        table.insert(a, b);
+                        return a;
+                    end);
     Class =         lpeg.Cg(Class * V"Variable" * CurlyOpen * V"ClassBlock"^0 * CurlyClose / function(a, b)
                         return a .. "={\n" .. (b or "") .."\n}\n" ..
                         a .. ".__constructor = function(s, ...) if " .. a .. ".__super then " .. a .. ".__super.__constructor(s, ...) end if " .. a .. ".constructor then " .. a .. ".constructor(s, ...) end end\n" ..
@@ -418,6 +424,45 @@ Gr = {
                         a .. ".__index = function(s, k) if (k) == \"super\" then return setmetatable({}, {__index=function(fake, k) local sp = ".. a .. ".__super while (sp[k] == nil and sp.__super) do sp = sp.__super end if type(sp[k]) == \"function\" then return function(fake, ...) return sp[k](s, ...) end end end}) end return " .. a .. "[k] or (" .. a .. ".__super.__index(s, k)) end\n" ..
                         a .. ".new = function(s, ...) local n = {} local o = setmetatable(n, s) o:__constructor(...) return o end\n" ..
                         a .. ".__super = "..super .. "\n"
+                    end) +
+                    lpeg.Cg(Class * V"Variable" * ((SingleColon - DoubleColon) + Extends) * V"ClassList" * CurlyOpen * V"ClassBlock"^0 * CurlyClose / function(a, super, b)
+                        local super_arr = table.concat(super, ", ");
+                        return a .. "={\n" .. (b or "") .."\n}\n" ..
+                        a .. ".__constructor = function(s, ...) " ..
+                            "local sp_array = ".. a .. ".__super "..
+                            "for _, sp in pairs(sp_array) do " ..
+                                "sp.__constructor(s, ...) " ..
+                            "end " ..
+                            "if " .. a .. ".constructor then " ..
+                                a .. ".constructor(s, ...) " ..
+                            "end " ..
+                        "end\n" ..
+                        a .. ".__index = function(s, k) if (k) == \"super\" then return setmetatable({}, {__index=function(fake, k) " ..
+                            "local sp_array = ".. a .. ".__super "..
+                            "for _, _sp in pairs(sp_array) do " ..
+                                "local sp = _sp " ..
+                                "while (sp[k] == nil and sp.__super) do " ..
+                                    "sp = sp.__super " ..
+                                "end " ..
+                                "if type(sp[k]) == \"function\" then "..
+                                    "return function(fake, ...) " ..
+                                        "return sp[k](s, ...) " ..
+                                    "end " ..
+                                "end " ..
+                            "end " ..
+                        "end}) end " ..
+                        "if " .. a .. "[k] == nil then " ..
+                            "local sp_array = ".. a .. ".__super " ..
+                            "for _, sp in pairs(sp_array) do " ..
+                                "local ret = sp.__index(s, k)" ..
+                                "if ret ~= nil then " ..
+                                    "return ret " ..
+                                "end " ..
+                            "end " ..
+                        "end " ..
+                        "return " .. a .. "[k] end\n" ..
+                        a .. ".new = function(s, ...) local n = {} local o = setmetatable(n, s) o:__constructor(...) return o end\n" ..
+                        a .. ".__super = {".. super_arr .. "}\n"
                     end);
     ClassFunction = lpeg.Cg((V"OptionalType") * ParenOpen * V"FunctionParams"^0 * ParenClose * V"Block" / function(b, c, d)
                         if d then

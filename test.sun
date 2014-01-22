@@ -54,12 +54,8 @@ class Car extends Vehicle {
     }
 }
 
-class Motorcycle extends Vehicle {
-    constructor() {
-        super.setVelocity(5);
-    }
-
-    draw() {
+class MixinTest {
+    drawMotorcycle() {
         love::graphics::setColor(super.getColor());
         love::graphics::rectangle( "fill", self.x - 50, self.y - 40, 100, 20 );
 
@@ -71,6 +67,16 @@ class Motorcycle extends Vehicle {
         love::graphics::setColor(100, 100, 100);
         love::graphics::circle( "fill", self.x - 40 + math::cos(self.lifetime)*2, self.y + math::sin(self.lifetime)*2, 10, 20 );
         love::graphics::circle( "fill", self.x + 40 - math::cos(self.lifetime)*2, self.y - math::sin(self.lifetime)*2, 10, 20 );
+    }
+}
+
+class Motorcycle extends Vehicle, MixinTest {
+    constructor() {
+        super.setVelocity(5);
+    }
+
+    draw() {
+        super.drawMotorcycle();
     }
 }
 

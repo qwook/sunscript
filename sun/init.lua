@@ -45,22 +45,24 @@ require = function(...)
     local foldername = name:gsub("%.", DELIMITER) .. DELIMITER .. "init.sun";
 
     if (love.filesystem.exists(filename)) then
-        local fn = loadstring(
+        local fn, err = loadstring(
                     suncomp.compile(
                             love.filesystem.read(filename)
                     ),
                     filename
         );
+        if not fn then error(err) end
         return fn();
     end
 
     if (love.filesystem.exists(foldername)) then
-        local fn = loadstring(
+        local fn, err = loadstring(
                     suncomp.compile(
                             love.filesystem.read(foldername)
                     ),
                     foldername
         );
+        if not fn then error(err) end
         return fn();
     end
 
