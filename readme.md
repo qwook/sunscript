@@ -3,8 +3,12 @@ a legibility-driven oop scripting language compatible with the **love2d** game f
 
 **!!! THIS IS MEANT TO BE A WORKING CONCEPT !!!**  
 there is no easy way to debug sunscript right now. errors cannot be traced and sometimes don't even show up explicitly. it should not be used in production *unless you're super crazy*.
+  
+#how to use#
 
-==========================
+    require("sun")
+
+then require .sun files as you would with .lua files.
 
 #check out some sunscript#
 
@@ -16,7 +20,7 @@ there is no easy way to debug sunscript right now. errors cannot be traced and s
 	        self.y = y;
 	    }
 		    
-	    setPosition(x, y) { self.x = self.x; self.y = self.y; }
+	    setPosition(x, y) { self.x = x; self.y = y; }
 	    getPosition() { return self.x, self.y; }
 	    
 	    start() { }

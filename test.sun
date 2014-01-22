@@ -25,7 +25,7 @@ class Vehicle {
                         , math::sin(self.lifetime) * 150 );
     }
 
-    setPosition(x, y) { self.x = self.x; self.y = self.y; }
+    setPosition(x, y) { self.x = x; self.y = y; }
     getPosition() { return self.x, self.y; }
 
     setVelocity(velocity) { self.velocity = velocity; }
