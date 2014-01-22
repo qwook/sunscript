@@ -1,0 +1,104 @@
+// example sunscript file
+
+local entities = [];
+
+class Vehicle {
+    constructor(offset) {
+        table::insert(entities, self);
+
+        self.x = 0;
+        self.y = 0;
+
+        self.r = math::random(0, 255);
+        self.g = math::random(0, 255);
+        self.b = math::random(0, 255);
+
+        self.velocity = 1;
+        self.lifetime = offset || 0;
+    }
+
+    void draw() { }
+    void update(dt) {
+        self.lifetime += dt * self.velocity;
+
+        self.setPosition( math::cos(self.lifetime) * 150
+                        , math::sin(self.lifetime) * 150 );
+    }
+
+    setPosition(x, y) { self.x = self.x; self.y = self.y; }
+    getPosition() { return self.x, self.y; }
+
+    setVelocity(velocity) { self.velocity = velocity; }
+    getVelocity() { return self.velocity; }
+
+    getColor() { return self.r, self.g, self.b; }
+}
+
+class Car extends Vehicle {
+    constructor() {
+        super.setVelocity(2);
+    }
+
+    draw() {
+        love::graphics::setColor(super.getColor());
+        love::graphics::rectangle( "fill", self.x - 50, self.y - 40, 100, 40 );
+        love::graphics::rectangle( "fill", self.x - 25, self.y - 60, 50, 20 );
+
+        love::graphics::setColor(0, 0, 0);
+        love::graphics::circle( "fill", self.x - 30, self.y, 25, 50 );
+        love::graphics::circle( "fill", self.x + 30, self.y, 25, 50 );
+
+        love::graphics::setColor(100, 100, 100);
+        love::graphics::circle( "fill", self.x - 30 + math::cos(self.lifetime)*2, self.y + math::sin(self.lifetime)*2, 10, 20 );
+        love::graphics::circle( "fill", self.x + 30 - math::cos(self.lifetime)*2, self.y - math::sin(self.lifetime)*2, 10, 20 );
+    }
+}
+
+class Motorcycle extends Vehicle {
+    constructor() {
+        super.setVelocity(5);
+    }
+
+    draw() {
+        love::graphics::setColor(super.getColor());
+        love::graphics::rectangle( "fill", self.x - 50, self.y - 40, 100, 20 );
+
+        love::graphics::setColor(0, 0, 0);
+        love::graphics::rectangle( "fill", self.x - 25, self.y - 40, 50, 20 );
+        love::graphics::circle( "fill", self.x - 40, self.y, 20, 50 );
+        love::graphics::circle( "fill", self.x + 40, self.y, 20, 50 );
+
+        love::graphics::setColor(100, 100, 100);
+        love::graphics::circle( "fill", self.x - 40 + math::cos(self.lifetime)*2, self.y + math::sin(self.lifetime)*2, 10, 20 );
+        love::graphics::circle( "fill", self.x + 40 - math::cos(self.lifetime)*2, self.y - math::sin(self.lifetime)*2, 10, 20 );
+    }
+}
+
+function love::load() {
+    love::graphics::setBackgroundColor(130, 190, 255)
+
+    for (local i = 0; i < 3; i++) {
+        local car = new Car(i);
+        local motorcycle = new Motorcycle(i);
+    }
+}
+
+function love::update(dt) {
+    for (entity : entities) {
+        entity.update(dt);
+    }
+}
+
+function love::draw() {
+    love::graphics::origin();
+    love::graphics::translate(love::graphics::getWidth() / 2, love::graphics::getHeight() / 2);
+
+    for (entity : entities) {
+        entity.draw();
+    }
+}
+
+// and that's it!
+// there's a ton more features that I have yet to show off (like operator overloading, bitwise operations, being able to break and continue in loops)
+// but I hope this project interests you so that I will keep developing it!
+// still debating on whether to keep lua's syntax with "." and "::"
