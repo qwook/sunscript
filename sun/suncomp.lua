@@ -468,9 +468,9 @@ Gr = {
                     end);
     ClassFunction = lpeg.Cg((V"OptionalType") * ParenOpen * V"FunctionParams"^0 * ParenClose * V"Block" / function(b, c, d)
                         if d then
-                            return b .." = function(self, " .. c .. ")\nlocal super = self.super\n" .. d .. "\nend"
+                            return b .." = function(self, " .. c .. ")\nlocal super = self.super\n" .. d .. "\nend\n"
                         else
-                            return b .." = function(self)\nlocal super = self.super\n" .. c .. "\nend"
+                            return b .." = function(self)\nlocal super = self.super\n" .. c .. "\nend\n"
                         end
                     end);
     ClassDeclare =  lpeg.Cg(V"Type" * V"Variable");
@@ -480,7 +480,7 @@ Gr = {
     --prototype legacy class blocks
     ClassBlock =    lpeg.Ct((V"ClassFunction")^1) / function(a) return table.concat(a, ";\n") end;
     TryCatch = (Try * V"Block" * Catch * ParenOpen * V"Variable" * ParenClose * V"Block") / function(try, e, catch)
-        return "local succ, " .. e .. " = pcall(function ()\n" .. try .. "end) if not succ then " .. catch .. " end\n";
+        return "local succ, " .. e .. " = pcall(function ()\n" .. try .. " end) if not succ then " .. catch .. " end\n";
     end;
 }
 
