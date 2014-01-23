@@ -32,7 +32,7 @@
 
 local DELIMITER = package.config:sub(1,1);
 
-require("sun.suncomp");
+require(... ..".suncomp");
 
 local _require = require;
 require = function(...)
@@ -52,7 +52,8 @@ require = function(...)
                     filename
         );
         if not fn then error(err) end
-        return fn();
+        package.loaded[name] = fn() or true;
+        return package.loaded[name];
     end
 
     if (love.filesystem.exists(foldername)) then
@@ -63,7 +64,8 @@ require = function(...)
                     foldername
         );
         if not fn then error(err) end
-        return fn();
+        package.loaded[name] = fn() or true;
+        return package.loaded[name];
     end
 
     return _require(...);

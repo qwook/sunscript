@@ -30,7 +30,8 @@
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 -- THE SOFTWARE.
 
-local lpeg = require("sun.lulpeg")
+local path = (...):gsub("%.([A-z0-9]+)$", "");
+local lpeg = require(path .. ".lulpeg")
 local io = io
 local string = string
 local print = print
@@ -93,7 +94,17 @@ local function opset2fn(b, c)
 end
 
 local function opaugsetfn(b, op, c)
-    return b .. "=" .. b .. op.. c .. ";";
+
+    if (op == "<<") then
+        return b .. "=bitleft(" .. b .. "," .. c .. ");";
+    elseif (op == ">>") then
+        return b .. "=bitright(" .. b .. "," .. c .. ");";
+    elseif (op == "&") then
+        return b .. "=bitand(" .. b .. "," .. c .. ");";
+    elseif (op == "|") then
+        return b .. "=bitor(" .. b .. "," .. c .. ");";
+    end
+    return b .. "=" .. b .. op .. "(" .. c .. ");";
 end
 
 local function parenfn(a, b, c)
@@ -167,8 +178,9 @@ local Comment =     lpeg.P"/*" * (lpeg.P(1) - lpeg.P"*/")^0 * lpeg.P"*/";
 local CommentLine = lpeg.P"//" * (lpeg.P(1) - lpeg.P"\n")^0 * lpeg.P"\n";
 local Space =       (lpeg.S(" \n\t") + Comment + CommentLine)^0;
 local CSpace =      lpeg.C(Space);
-local Number =      lpeg.C(lpeg.P"-"^-1 * lpeg.R("09")^1) * Space;
-local Name =        lpeg.C((lpeg.S"$_" + lpeg.R("az", "AZ")) * (lpeg.R("az", "AZ", "09") + lpeg.S"$_" )^0) / function(a) a = a:gsub("%$", "__") return a end * Space;
+local Hex =         (lpeg.P"0" * lpeg.S"xX" * lpeg.R("af", "AF", "09")^1)
+local Number =      lpeg.C(Hex + (lpeg.P"-"^-1 * lpeg.R("09")^1)) * Space;
+local Name =        lpeg.C((lpeg.S"$_" + lpeg.R("az", "AZ")) * (lpeg.R("az", "AZ", "09") + lpeg.S"$_" )^0 - Hex) / function(a) a = a:gsub("%$", "__") return a end * Space;
 local Operator =    lpeg.C(lpeg.P"<=" + lpeg.P"=<" + lpeg.P"=>" + lpeg.P">=" + lpeg.P"<<" + lpeg.P">>" + lpeg.S("+-*/<>%^") + lpeg.P".." + lpeg.P"." + (lpeg.P"::") + (lpeg.P"==") + (lpeg.P"!=") + (lpeg.P"~=") + (lpeg.P"or" - (lpeg.P"or" * Name)) + (lpeg.P"and" - (lpeg.P"and" * Name)) + (lpeg.P"|" - lpeg.P"||") + (lpeg.P"&" - lpeg.P"&&") + lpeg.P"||" + lpeg.P"&&") * Space;
 local EqualOp =     (lpeg.P"=" - lpeg.P"==") * Space;
 local CurlyOpen =   lpeg.P"{" * Space;
@@ -217,7 +229,7 @@ local PARSER_DEBUG = function(start, expect)
             end));
 end;
 
--- Grammer
+-- Grammar
 local Gr;
 Gr = {
     "Genesis",
@@ -318,7 +330,7 @@ Gr = {
                     + (V"Type" * lpeg.Cf(V"Name" * (Comma * V"Name")^0, function(a, b) return a .. "," .. b end) * EqualOp * V"Expression" / opsetfn)
                     + (lpeg.Cf(V"OptionalType" * (Comma * V"Name")^0, function(a, b) return a .. "," .. b end) * EqualOp * V"Expression" / opset2fn)
                     + PARSER_DEBUG(V"OptionalType" * EqualOp, "Expression");
-    OpAugSet =      (V"Variable" * lpeg.C(lpeg.P".." + lpeg.S"+-*/^%") * EqualOp * V"Expression" / opaugsetfn);
+    OpAugSet =      (V"Variable" * lpeg.C(lpeg.P".." + lpeg.P"<<" + lpeg.P">>" + lpeg.S"+-*/^%&|") * EqualOp * V"Expression" / opaugsetfn);
     OpGen =         lpeg.Cf(
                         (lpeg.Cg(ParenOpen * V"Expression" * ParenClose / function(a) return "(" .. a .. ")" end)
                             + V"ExpressionVar")
@@ -375,10 +387,10 @@ Gr = {
     CrementLine =   (V"Variable" + (Name - V"Keyword")) * Crement / crementfn;
 
     -- Hardest thing ever, tables
-    Table =         lpeg.C(CurlyOpen) * (V"TableEles")^0 * CurlyClose / function(_, b)
+    Table =         lpeg.C(CurlyOpen) * (V"TableEles")^0 * (Comma + Semicolon)^-1 * CurlyClose / function(_, b)
                         return "{" .. (b or "") .. "}"
                     end;
-    Array =         lpeg.C(BlockyOpen) * (V"ArrayEles")^0 * BlockyClose / function(_, b)
+    Array =         lpeg.C(BlockyOpen) * (V"ArrayEles")^0 * (Comma + Semicolon)^-1 * BlockyClose / function(_, b)
                         return "{" .. (b or "") .. "}"
                     end;
     ArrayEles =     lpeg.Cf(
@@ -418,13 +430,15 @@ Gr = {
                         return a .. "={\n" .. (b or "") .."\n}\n" ..
                         a .. ".__constructor = function(s, ...) if " .. a .. ".__super then " .. a .. ".__super.__constructor(s, ...) end if " .. a .. ".constructor then " .. a .. ".constructor(s, ...) end end\n" ..
                         a .. ".__index = function(s, k) return " .. a .. "[k] end\n" ..
-                        a .. ".new = function(s, ...) local o = setmetatable({}, s) if o.constructor then o:constructor(...) end return o end\n"
+                        a .. ".new = function(s, ...) local o = setmetatable({}, s) if o.constructor then o:constructor(...) end return o end\n" ..
+                        a .. ".__classname = \"" .. a .. "\"\n"
                     end) +
                     lpeg.Cg(Class * V"Variable" * ((SingleColon - DoubleColon) + Extends) * V"Variable" * CurlyOpen * V"ClassBlock"^0 * CurlyClose / function(a, super, b)
                         return a .. "={\n" .. (b or "") .."\n}\n" ..
                         a .. ".__constructor = function(s, ...) if " .. a .. ".__super then " .. a .. ".__super.__constructor(s, ...) end if " .. a .. ".constructor then " .. a .. ".constructor(s, ...) end end\n" ..
                         a .. ".__index = function(s, k) if (k) == \"super\" then return setmetatable({}, {__index=function(fake, k) local sp = ".. a .. ".__super while (sp[k] == nil and sp.__super) do sp = sp.__super end if type(sp[k]) == \"function\" then return function(fake, ...) return sp[k](s, ...) end end end}) end return " .. a .. "[k] or (" .. a .. ".__super.__index(s, k)) end\n" ..
                         a .. ".new = function(s, ...) local n = {} local o = setmetatable(n, s) o:__constructor(...) return o end\n" ..
+                        a .. ".__classname = \"" .. a .. "\"\n" ..
                         a .. ".__super = "..super .. "\n"
                     end) +
                     lpeg.Cg(Class * V"Variable" * ((SingleColon - DoubleColon) + Extends) * V"ClassList" * CurlyOpen * V"ClassBlock"^0 * CurlyClose / function(a, super, b)
@@ -464,6 +478,7 @@ Gr = {
                         "end " ..
                         "return " .. a .. "[k] end\n" ..
                         a .. ".new = function(s, ...) local n = {} local o = setmetatable(n, s) o:__constructor(...) return o end\n" ..
+                        a .. ".__classname = \"" .. a .. "\"\n" ..
                         a .. ".__super = {".. super_arr .. "}\n"
                     end);
     ClassFunction = lpeg.Cg((V"OptionalType") * ParenOpen * V"FunctionParams"^0 * ParenClose * V"Block" / function(b, c, d)
@@ -472,7 +487,10 @@ Gr = {
                         else
                             return b .." = function(self)\nlocal super = self.super\n" .. c .. "\nend\n"
                         end
-                    end);
+                    end)
+                    + PARSER_DEBUG((V"OptionalType") * ParenOpen * V"FunctionParams"^0 * ParenClose, "Block")
+                    + PARSER_DEBUG((V"OptionalType") * ParenOpen, "FunctionParams")
+                    + PARSER_DEBUG((V"OptionalType"), "ParenOpen");
     ClassDeclare =  lpeg.Cg(V"Type" * V"Variable");
     -- ClassBlock =    lpeg.Cf(V"ClassFunction" * (V"ClassBlock")^0, function(a, b)
     --                     return a .. ";\n" .. b
