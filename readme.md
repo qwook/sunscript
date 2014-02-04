@@ -31,7 +31,7 @@ then require .sun files as you would with .lua files.
 ###polymorphism###
 	class Motorcycle extends Vehicle {
 		start() {
-			super.start();
+			super:start();
 		}
 	}
 ###multiple inheritance###
@@ -49,9 +49,9 @@ then require .sun files as you would with .lua files.
     }
 
     local programmer = new Programmer();
-    programmer.cook();
-    programmer.eat();
-    programmer.program();
+    programmer:cook();
+    programmer:eat();
+    programmer:program();
 
 ###C++ inspired syntax###
 

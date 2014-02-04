@@ -155,9 +155,9 @@ end
 
 local function indexcallfn(a, b, c)
     if b == "." then
-        return a .. ":" .. c;
-    elseif b == "::" then
         return a .. "." .. c;
+    elseif b == ":" then
+        return a .. ":" .. c;
     end
 end
 
@@ -253,10 +253,10 @@ Gr = {
     Variable =      lpeg.Cf(V"Variable2" * (
                             -- [test + 1]
                             lpeg.Cg(lpeg.C(BlockyOpen) * V"Expression" * BlockyClose) +
-                            -- .test, but not when running a function.
-                            (lpeg.Cg(lpeg.C(Dot) * V"Variable")) - (lpeg.Cg(lpeg.C(Dot) * V"Variable" * ParenOpen)) +
-                            -- :: will always give a dot
-                            lpeg.Cg(lpeg.C(DoubleColon) * V"Variable")
+                            -- :test, but not when running a function.
+                            (lpeg.Cg(lpeg.C(SingleColon) * V"Variable")) - (lpeg.Cg(lpeg.C(SingleColon) * V"Variable" * ParenOpen)) +
+                            -- . will always give a dot
+                            lpeg.Cg(lpeg.C(Dot) * V"Variable")
                     )^0, indexfn) ;
 
     -- A headless scope.
@@ -287,11 +287,11 @@ Gr = {
 
     -- Call a function
     Call =          lpeg.Cf(
-                        lpeg.Cg(lpeg.Cf(V"Variable" * (Dot * (Name - V"Keyword"))^0, index2fn))
+                        lpeg.Cg(lpeg.Cf(V"Variable" * (SingleColon * (Name - V"Keyword"))^0, index2fn))
                             * (V"CallParen") / callfn *
                         (
                             (lpeg.Cg(lpeg.C(Dot) * V"Call")) +
-                            (lpeg.Cg(lpeg.C(DoubleColon) * V"Call"))
+                            (lpeg.Cg(lpeg.C(SingleColon) * V"Call"))
                         )^0, indexcallfn);
     CallParen =     lpeg.Cf(lpeg.Cg(((ParenOpen * ParenClose) / (function(a) return "()" end)) +
                     (ParenOpen * V"CallArgs" * ParenClose) / (function(a) return "(" .. a .. ")" end)) * V"CallParen"^0, function(a, b)
@@ -334,12 +334,12 @@ Gr = {
     OpGen =         lpeg.Cf(
                         (lpeg.Cg(ParenOpen * V"Expression" * ParenClose / function(a) return "(" .. a .. ")" end)
                             + V"ExpressionVar")
-                        * (lpeg.Cg((Operator * V"Expression") - (Dot * V"Call"))
-                            + lpeg.Cg(lpeg.C(Dot) / function() return ":" end * (V"Call" - (V"Call" * V"HeadlessScope")))
+                        * (lpeg.Cg((Operator * V"Expression") - (SingleColon * V"Call"))
+                            + lpeg.Cg(lpeg.C(SingleColon) / function() return ":" end * (V"Call" - (V"Call" * V"HeadlessScope")))
                         )^0, function(a, b, c)
-                        if (b == ".") then
-                            return a .. "." .. c;
-                        elseif (b == "::") then
+                        if (b == ":") then
+                            return a .. ":" .. c;
+                        elseif (b == ".") then
                             return a .. "." .. c;
                         elseif (b == "||" or b == "or") then
                             return a .. " or " .. c;
